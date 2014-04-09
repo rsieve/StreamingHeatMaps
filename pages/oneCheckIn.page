@@ -1,0 +1,79 @@
+<apex:page showHeader="false" standardController="Action__c" extensions="CheckInExt" sidebar="false" docType="html-5.0" >
+    <html>
+    <head>
+    
+    <title>Check In</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1"></meta>
+    <script src="//ajax.googleapis.com/ajax/libs/jquery/1.11.0/jquery.min.js"></script>
+    <link rel="stylesheet" href="//ajax.googleapis.com/ajax/libs/jquerymobile/1.4.0/jquery.mobile.min.css" />
+    <script src="//ajax.googleapis.com/ajax/libs/jquerymobile/1.4.0/jquery.mobile.min.js"></script>
+    <script>
+        
+        function checkIn(){
+            var position = navigator.geolocation.getCurrentPosition(displayResults);
+            document.getElementById('loading').style.display = 'block'; 
+        }
+        
+        function displayResults(position){
+            console.log(position);
+            Visualforce.remoting.Manager.invokeAction(
+                '{!$RemoteAction.CheckInExt.PushCheckIn}', 
+                position.coords.latitude, 
+                position.coords.longitude,
+                function(result, event){
+                    if (event.status) {
+                        document.getElementById('lat').innerHTML = position.coords.latitude;
+                        document.getElementById('lon').innerHTML = position.coords.longitude;
+                        document.getElementById('loading').style.display = 'none'; 
+                        document.getElementById('locgrid').style.display = 'block';
+                    } else if (event.type === 'exception') {
+                        document.getElementById("responseErrors").innerHTML = event.message;
+                    } else {
+                        document.getElementById("responseErrors").innerHTML = event.message;
+                    }
+                }, 
+                {escape: true}
+            );
+        }
+         
+        function redirect(){
+			var curr = document.URL;
+			console.log(curr);
+			if(curr.indexOf("rsdevstreaming") != -1){
+        		window.location.href = "https://rsdevstreaming-developer-edition.na15.force.com/checkin/heatmap";
+        	}else{
+        		redirheat();
+        	}
+        }
+    
+    </script>
+    </head>
+    <body>
+
+        <div data-role="page">
+        
+            <div data-role="header">
+                <h1>Heat Maps Check In</h1>
+            </div><!-- /header -->
+        
+            <div role="main" class="ui-content">
+                <button class="ui-btn ui-shadow ui-corner-all ui-btn-icon-left ui-icon-navigation" onclick="checkIn();">Check In</button>
+            </div><!-- /content -->
+            <div id="loading" style="display:none;"><img src="{!$Resource.loading}" width="30px" height="30px"/></div>
+            
+            <div class="ui-body ui-body-a ui-corner-all" style="display:none;" id="locgrid">
+                <h3>Thanks for checking in!</h3>
+                <div class="ui-grid-a">
+                    <div class="ui-block-a"><div class="ui-body ui-body-d" style="height:60px">Latitude: <div id="lat"></div></div></div>
+                    <div class="ui-block-b"><div class="ui-body ui-body-d" style="height:60px">Longitude: <div id="lon"></div></div></div>
+                </div><!-- /grid-a -->
+                <a onclick="redirect();" class="ui-btn">View Heat Map</a>
+            </div>
+            <h2 style="color:red" id="responseErrors"></h2><br/>
+        </div><!-- /page -->
+        <apex:form >
+        	<apex:actionfunction name="redirheat" action="{!heatmap}" immediate="true"/>
+        </apex:form>
+    </body>
+    </html>
+</apex:page>

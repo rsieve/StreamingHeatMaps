@@ -1,0 +1,78 @@
+<apex:page sidebar="false" showHeader="false" cache="false" docType="html-5.0"  standardController="Action__c" extensions="CheckInExt" >
+
+    <style>
+      html, body, #map_canvas {
+        margin: 0;
+        padding: 0;
+        height: 100%;
+      }
+    </style>
+    
+   
+    <script src="https://maps.googleapis.com/maps/api/js?v=3.exp&sensor=false&libraries=visualization"></script>    
+    <script>
+        var map, pointarray, heatmap;
+        //map.getCenter();
+        var heatData = [];
+                
+        function initialize() {
+            var position = navigator.geolocation.getCurrentPosition(retPosition);
+            // set the map options in the format that V3 of googlemaps expects
+            var mapOptions = {
+                zoom: 12,
+                center: new google.maps.LatLng(37.774546, -122.433523),
+                mapTypeId: google.maps.MapTypeId.SATELLITE
+              };
+            
+            // attach our map to the map_canvas div
+            map = new google.maps.Map(document.getElementById('map_canvas'),mapOptions);
+
+        } // function initialize()
+
+        google.maps.event.addDomListener(window, 'load', initialize);
+        
+        function retPosition(position){
+            console.log(position);
+            Visualforce.remoting.Manager.invokeAction(
+                '{!$RemoteAction.CheckInExt.RetrieveCheckIns}', 
+                position.coords.latitude, 
+                position.coords.longitude,
+                function(result, event){
+                    if (event.status) {
+                        console.log(event);
+                        for(var i=0; i<result.length; i++){
+                            heatData.push(new google.maps.LatLng(result[i].Location__Latitude__s, result[i].Location__Longitude__s));
+                        }
+                        // set the map options in the format that V3 of googlemaps expects
+                        var mapOptions = {
+                            zoom: 12,
+                            center: new google.maps.LatLng(position.coords.latitude, position.coords.longitude),
+                            mapTypeId: google.maps.MapTypeId.SATELLITE
+                          };
+                        
+                        // attach our map to the map_canvas div
+                        map = new google.maps.Map(document.getElementById('map_canvas'),mapOptions);
+            
+                        var pointArray = new google.maps.MVCArray(heatData);
+                        
+                        heatmap = new google.maps.visualization.HeatmapLayer({
+                          data: pointArray
+                        });      
+                        
+                        heatmap.setMap(map);
+                    } else if (event.type === 'exception') {
+                        document.getElementById("responseErrors").innerHTML = event.message;
+                    } else {
+                        document.getElementById("responseErrors").innerHTML = event.message;
+                    }
+                }, 
+                {escape: true}
+            );
+        }
+       
+                        
+    </script>
+
+    <div id="map_canvas" style="width: 100%; height: 100%"></div>
+    <h2 style="color:red" id="responseErrors"></h2><br/>
+</apex:page>
